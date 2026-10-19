@@ -1,0 +1,39 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import { getLocalizedPath } from '@/i18n/routing';
+
+const base = import.meta.env.BASE_URL;
+---
+
+<BaseLayout
+  title="404 — Szymon Potyra"
+  description="Page not found / Nie znaleziono strony."
+  locale="en"
+  currentPath="/"
+>
+  <section class="mx-auto flex max-w-3xl flex-col items-center justify-center px-4 py-28 text-center sm:px-6">
+    <p class="font-mono text-xs tracking-widest text-[#A855F7] uppercase">
+      ERROR 404
+    </p>
+    <h1 class="mt-3 text-3xl font-semibold tracking-tight text-[#FAFAFA] sm:text-5xl">
+      Page not found / Nie znaleziono strony
+    </h1>
+    <p class="mt-4 max-w-md text-sm leading-relaxed text-[#A1A1AA]">
+      The requested address does not exist. / Żądany adres nie istnieje.
+    </p>
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <a
+        href={getLocalizedPath('/', 'en', base)}
+        class="rounded-lg bg-[#FAFAFA] px-4 py-2 text-xs font-medium text-[#09090B] transition-colors hover:bg-[#E4E4E7]"
+      >
+        Home (EN) →
+      </a>
+      <a
+        href={getLocalizedPath('/', 'pl', base)}
+        class="rounded-lg border border-[#27272A] bg-[#111115] px-4 py-2 text-xs font-medium text-[#FAFAFA] transition-colors hover:border-[#A855F7]"
+      >
+        Start (PL) →
+      </a>
+    </div>
+  </section>
+</BaseLayout>

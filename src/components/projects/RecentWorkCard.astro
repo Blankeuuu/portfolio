@@ -1,0 +1,127 @@
+---
+import type { Locale } from '@/data/site';
+import { getTranslations } from '@/i18n/translations';
+import { formatDate, withBase } from '@/i18n/routing';
+import type { UnifiedProjectItem } from '@/lib/projects/recent';
+
+interface Props {
+  item: UnifiedProjectItem;
+  locale: Locale;
+  index?: number;
+}
+
+const { item, locale, index = 0 } = Astro.props;
+const t = getTranslations(locale);
+const base = import.meta.env.BASE_URL;
+const isRepo = item.kind === 'repository';
+const revealDelay = `${Math.min(index * 70, 350)}ms`;
+---
+
+<article
+  data-reveal
+  style={`--reveal-delay: ${revealDelay}`}
+  class="surface-card surface-card-interactive group relative flex flex-col justify-between rounded-xl p-6"
+>
+  <div>
+    <!-- Optional 3D Model Cover Preview -->
+    {
+      !isRepo && item.coverImage && (
+        <div class="mb-5 overflow-hidden rounded-lg border border-[#27272A] bg-[#09090B] aspect-[16/10]">
+          <img
+            src={item.coverImage.startsWith('http') ? item.coverImage : withBase(item.coverImage, base)}
+            alt={item.title}
+            width="640"
+            height="400"
+            loading="lazy"
+            decoding="async"
+            class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]"
+          />
+        </div>
+      )
+    }
+
+    <!-- Top Metadata Row -->
+    <div class="flex items-center justify-between gap-3">
+      <span
+        class:list={[
+          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 font-mono text-[11px] font-medium tracking-wide uppercase',
+          isRepo
+            ? 'border-[#27272A] bg-[#18181B] text-[#A1A1AA]'
+            : 'border-[#A855F7]/35 bg-[#A855F7]/10 text-[#D8B4FE]',
+        ]}
+      >
+        <span
+          class:list={[
+            'h-1.5 w-1.5 rounded-full',
+            isRepo ? 'bg-[#A1A1AA]' : 'bg-[#A855F7]',
+          ]}
+          aria-hidden="true"
+        />
+        {isRepo ? t.home.badgeRepo : t.home.badgeModel}
+      </span>
+
+      <time
+        datetime={item.publishedDate}
+        class="font-mono text-xs text-[#71717A]"
+      >
+        {formatDate(item.publishedDate, locale)}
+      </time>
+    </div>
+
+    <!-- Title -->
+    <h3 class="mt-4 text-lg font-semibold tracking-tight text-[#FAFAFA] transition-colors group-hover:text-white">
+      <a
+        href={item.href}
+        target={item.isExternal ? '_blank' : undefined}
+        rel={item.isExternal ? 'noopener noreferrer' : undefined}
+        class="after:absolute after:inset-0 focus:outline-none"
+      >
+        <span>{item.title}</span>
+      </a>
+    </h3>
+
+    <!-- Description -->
+    <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-[#A1A1AA]">
+      {item.description ?? t.repos.noDescription}
+    </p>
+  </div>
+
+  <!-- Bottom Footer Row -->
+  <div class="mt-6 flex items-center justify-between gap-4 border-t border-[#1F1F23] pt-4 text-xs">
+    <div class="flex flex-wrap items-center gap-2">
+      {
+        item.primaryTag && (
+          <span class="inline-flex items-center gap-1.5 font-mono text-xs text-[#D4D4D8]">
+            <span class="h-2 w-2 rounded-full bg-[#A855F7]" aria-hidden="true" />
+            {item.primaryTag}
+          </span>
+        )
+      }
+      {
+        typeof item.starsCount === 'number' && item.starsCount > 0 && (
+          <span
+            class="inline-flex items-center gap-1 font-mono text-xs text-[#A1A1AA]"
+            aria-label={`${item.starsCount} ${t.repos.starsLabel}`}
+          >
+            <svg
+              class="h-3.5 w-3.5 text-[#A855F7]"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+            </svg>
+            {item.starsCount}
+          </span>
+        )
+      }
+    </div>
+
+    <span
+      class="inline-flex items-center gap-1 font-mono text-xs text-[#A1A1AA] transition-colors group-hover:text-[#A855F7]"
+      aria-hidden="true"
+    >
+      {item.isExternal ? 'GitHub ↗' : '3D →'}
+    </span>
+  </div>
+</article>

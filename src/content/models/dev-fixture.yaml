@@ -1,0 +1,27 @@
+# DEVELOPMENT FIXTURE ONLY — Automatically excluded from production builds (isDevFixture: true).
+# Only rendered when INCLUDE_DEV_FIXTURES=true for automated testing and local viewer verification.
+title: "DEV FIXTURE — Parametric Calibration Block"
+slug: "dev-calibration-block"
+description:
+  en: "Development fixture used exclusively for automated testing of the interactive GLB viewer, gallery, and download gating. Never published in production builds."
+  pl: "Obiekt testowy używany wyłącznie do automatycznych testów interaktywnego podglądu GLB, galerii oraz kontroli pobrań. Nigdy nie jest publikowany w wersji produkcyjnej."
+publishedAt: "2026-10-19"
+categories:
+  - "Test Fixture"
+tags:
+  - "Calibration"
+  - "GLB Test"
+cover: "/images/fixture-cover.svg"
+images:
+  - "/images/fixture-cover.svg"
+model: "/models/fixture-cube.glb"
+downloadEnabled: false
+downloads: []
+software: "FreeCAD"
+printer: "Prusa MK4"
+material: "PETG"
+printTime: "25m"
+version: "0.1-dev"
+license: "MIT"
+isDevFixture: true
+draft: false

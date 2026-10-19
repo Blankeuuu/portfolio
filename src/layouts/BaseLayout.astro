@@ -1,0 +1,239 @@
+---
+import '@/styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import { SITE_CONFIG, type Locale } from '@/data/site';
+import { getTranslations } from '@/i18n/translations';
+import { getEquivalentLocalePaths, withBase } from '@/i18n/routing';
+import Header from '@/components/navigation/Header.astro';
+import Footer from '@/components/layout/Footer.astro';
+
+interface Props {
+  title: string;
+  description: string;
+  locale: Locale;
+  currentPath?: string;
+  ogType?: 'website' | 'article';
+  ogImage?: string;
+}
+
+const {
+  title,
+  description,
+  locale,
+  currentPath = Astro.url.pathname,
+  ogType = 'website',
+  ogImage,
+} = Astro.props;
+
+const t = getTranslations(locale);
+const base = import.meta.env.BASE_URL;
+const siteOrigin = (Astro.site?.toString() ?? SITE_CONFIG.siteUrl).replace(/\/+$/, '');
+
+const localePaths = getEquivalentLocalePaths(currentPath, base);
+const canonicalUrl = `${siteOrigin}${localePaths[locale]}`;
+const enAlternateUrl = `${siteOrigin}${localePaths.en}`;
+const plAlternateUrl = `${siteOrigin}${localePaths.pl}`;
+const resolvedOgImage = ogImage
+  ? ogImage.startsWith('http')
+    ? ogImage
+    : `${siteOrigin}${withBase(ogImage, base)}`
+  : `${siteOrigin}${withBase('/favicon.svg', base)}`;
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Person',
+      '@id': `${siteOrigin}/#person`,
+      name: SITE_CONFIG.owner,
+      jobTitle: SITE_CONFIG.role,
+      email: `mailto:${SITE_CONFIG.email}`,
+      url: siteOrigin,
+      sameAs: [SITE_CONFIG.githubUrl],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': `${siteOrigin}/#website`,
+      url: siteOrigin,
+      name: t.meta.siteTitle,
+      description: t.meta.homeDescription,
+      inLanguage: ['en', 'pl'],
+      publisher: {
+        '@id': `${siteOrigin}/#person`,
+      },
+    },
+  ],
+};
+---
+
+<!doctype html>
+<html
+  lang={locale}
+  class="dark"
+  data-locale={locale}
+  data-en-path={localePaths.en}
+  data-pl-path={localePaths.pl}
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content={SITE_CONFIG.owner} />
+    <meta name="theme-color" content="#09090B" />
+
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg', base)} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="en" href={enAlternateUrl} />
+    <link rel="alternate" hreflang="pl" href={plAlternateUrl} />
+    <link rel="alternate" hreflang="x-default" href={enAlternateUrl} />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={t.meta.siteTitle} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:locale" content={locale === 'pl' ? 'pl_PL' : 'en_US'} />
+    <meta property="og:locale:alternate" content={locale === 'pl' ? 'en_US' : 'pl_PL'} />
+    <meta property="og:image" content={resolvedOgImage} />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+
+    <!-- JSON-LD Structured Data -->
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify(structuredData)}
+    />
+
+    <!-- Language Preference Restoration (First Visit Default = EN, No Browser Locale Override) -->
+    <script is:inline>
+      (function () {
+        try {
+          var STORAGE_KEY = 'szp-preferred-locale';
+          var SESSION_KEY = 'szp-locale-restored';
+          var html = document.documentElement;
+          var currentLocale = html.getAttribute('data-locale') || 'en';
+          var enPath = html.getAttribute('data-en-path');
+          var plPath = html.getAttribute('data-pl-path');
+          var storedLocale = localStorage.getItem(STORAGE_KEY);
+
+          if (!sessionStorage.getItem(SESSION_KEY) && (storedLocale === 'en' || storedLocale === 'pl')) {
+            sessionStorage.setItem(SESSION_KEY, '1');
+            if (storedLocale !== currentLocale) {
+              var targetPath = storedLocale === 'pl' ? plPath : enPath;
+              if (targetPath && targetPath !== window.location.pathname) {
+                window.location.replace(targetPath + window.location.search + window.location.hash);
+              }
+            }
+          }
+        } catch (_e) {
+          // Ignore storage access errors in restricted privacy modes
+        }
+      })();
+    </script>
+
+    <ClientRouter />
+  </head>
+  <body class="flex min-h-dvh flex-col bg-[#09090B] text-[#FAFAFA] antialiased">
+    <!-- Accessible Skip Link -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-md focus: border focus:border-[#A855F7] focus:bg-[#111115] focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-[#FAFAFA]"
+    >
+      {t.nav.skipToContent}
+    </a>
+
+    <Header locale={locale} currentPath={currentPath} />
+
+    <main id="main-content" class="flex-1">
+      <slot />
+    </main>
+
+    <Footer locale={locale} />
+
+    <script>
+      function initPortfolioInteractions() {
+        // 1. Language Switcher Storage Binding
+        const langLinks = document.querySelectorAll<HTMLAnchorElement>('[data-lang-switch]');
+        langLinks.forEach((link) => {
+          link.addEventListener('click', () => {
+            const targetLang = link.getAttribute('data-lang-switch');
+            if (targetLang === 'en' || targetLang === 'pl') {
+              try {
+                localStorage.setItem('szp-preferred-locale', targetLang);
+                sessionStorage.setItem('szp-locale-restored', '1');
+              } catch {
+                // Ignore private mode errors
+              }
+            }
+          });
+        });
+
+        // 2. Mobile Navigation Menu Toggle
+        const menuToggle = document.getElementById('mobile-menu-toggle');
+        const menuPanel = document.getElementById('mobile-menu-panel');
+        const iconOpen = document.getElementById('mobile-icon-open');
+        const iconClose = document.getElementById('mobile-icon-close');
+
+        if (menuToggle && menuPanel && iconOpen && iconClose) {
+          const setMenuState = (open: boolean) => {
+            menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+            const label = open
+              ? menuToggle.getAttribute('data-close-label')
+              : menuToggle.getAttribute('data-open-label');
+            if (label) menuToggle.setAttribute('aria-label', label);
+            menuPanel.classList.toggle('hidden', !open);
+            iconOpen.classList.toggle('hidden', open);
+            iconClose.classList.toggle('hidden', !open);
+          };
+
+          menuToggle.onclick = () => {
+            const isOpen = menuToggle.getAttribute('aria-expanded') === 'true';
+            setMenuState(!isOpen);
+          };
+
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && menuToggle.getAttribute('aria-expanded') === 'true') {
+              setMenuState(false);
+              menuToggle.focus();
+            }
+          });
+        }
+
+        // 3. IntersectionObserver Scroll-Triggered Reveal Animations
+        const revealElements = document.querySelectorAll<HTMLElement>('[data-reveal]');
+        const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+          revealElements.forEach((el) => el.classList.add('is-visible'));
+          return;
+        }
+
+        const observer = new IntersectionObserver(
+          (entries, obs) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                obs.unobserve(entry.target);
+              }
+            });
+          },
+          { rootMargin: '0px 0px -40px 0px', threshold: 0.08 }
+        );
+
+        revealElements.forEach((el) => observer.observe(el));
+      }
+
+      // Run on initial load and after every Astro View Transition navigation
+      initPortfolioInteractions();
+      document.addEventListener('astro:page-load', initPortfolioInteractions);
+    </script>
+  </body>
+</html>

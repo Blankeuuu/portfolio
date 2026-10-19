@@ -1,0 +1,30 @@
+# Project-local secrets and environment variables
+.env
+.env.*
+!.env.example
+!.env.sample
+*.pem
+*.key
+
+# Astro & Node build output / caches
+.astro/
+node_modules/
+dist/
+build/
+.cache/
+coverage/
+
+# Python / other caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+[Bb]in/
+[Oo]bj/
+
+# Local editor/system state
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json

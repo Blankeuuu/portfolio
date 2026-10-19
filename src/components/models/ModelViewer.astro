@@ -1,0 +1,252 @@
+---
+import type { Locale } from '@/data/site';
+import { getTranslations } from '@/i18n/translations';
+import { withBase } from '@/i18n/routing';
+
+interface Props {
+  modelUrl: string;
+  posterUrl?: string;
+  title: string;
+  locale: Locale;
+}
+
+const { modelUrl, posterUrl, title, locale } = Astro.props;
+const t = getTranslations(locale);
+const base = import.meta.env.BASE_URL;
+
+const resolvedModelSrc = modelUrl.startsWith('http')
+  ? modelUrl
+  : withBase(modelUrl, base);
+
+const resolvedPosterSrc = posterUrl
+  ? posterUrl.startsWith('http')
+    ? posterUrl
+    : withBase(posterUrl, base)
+  : undefined;
+---
+
+<section
+  aria-label={t.models.viewerSectionTitle}
+  class="relative overflow-hidden rounded-xl border border-[#27272A] bg-[#0D0D11]"
+  data-model-viewer-root
+  data-model-src={resolvedModelSrc}
+  data-poster-src={resolvedPosterSrc ?? ''}
+  data-model-alt={title}
+>
+  <!-- Top Viewer Bar -->
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-[#27272A] bg-[#111115] px-4 py-3">
+    <div class="flex items-center gap-2">
+      <span class="h-2 w-2 rounded-full bg-[#A855F7]" aria-hidden="true"></span>
+      <h2 class="font-mono text-xs font-medium tracking-wider text-[#FAFAFA] uppercase">
+        {t.models.viewerSectionTitle}
+      </h2>
+    </div>
+
+    <!-- Accessible Viewer Controls -->
+    <div class="flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        data-viewer-reset
+        aria-label={t.models.viewerResetCamera}
+        class="inline-flex items-center gap-1.5 rounded-md border border-[#27272A] bg-[#18181B] px-2.5 py-1 font-mono text-xs text-[#D4D4D8] transition-colors hover:border-[#A855F7]/50 hover:text-white"
+      >
+        <span>↺</span>
+        <span>{t.models.viewerResetCamera}</span>
+      </button>
+
+      <button
+        type="button"
+        data-viewer-autorotate
+        aria-pressed="true"
+        aria-label={t.models.viewerAutoRotate}
+        class="inline-flex items-center gap-1.5 rounded-md border border-[#A855F7]/40 bg-[#A855F7]/15 px-2.5 py-1 font-mono text-xs text-[#E9D5FF] transition-colors hover:border-[#A855F7] hover:text-white"
+      >
+        <span>⟳</span>
+        <span>{t.models.viewerAutoRotate}</span>
+      </button>
+
+      <button
+        type="button"
+        data-viewer-fullscreen
+        aria-label={t.models.viewerFullscreen}
+        class="inline-flex items-center gap-1.5 rounded-md border border-[#27272A] bg-[#18181B] px-2.5 py-1 font-mono text-xs text-[#D4D4D8] transition-colors hover:border-[#A855F7]/50 hover:text-white"
+      >
+        <span>⛶</span>
+        <span class="hidden sm:inline">{t.models.viewerFullscreen}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Interactive 3D Viewport -->
+  <div
+    data-viewer-stage
+    class="bg-architectural-grid relative aspect-[16/10] min-h-[320px] w-full sm:min-h-[440px]"
+  >
+    <!-- Loading Indicator -->
+    <div
+      data-viewer-loading
+      role="status"
+      aria-live="polite"
+      class="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-[#09090B]/80 backdrop-blur-xs transition-opacity duration-300"
+    >
+      <div class="h-7 w-7 animate-spin rounded-full border-2 border-[#27272A] border-t-[#A855F7]"></div>
+      <p class="font-mono text-xs text-[#A1A1AA]">{t.models.viewerLoading}</p>
+    </div>
+
+    <!-- Error / Fallback Overlay -->
+    <div
+      data-viewer-error
+      role="alert"
+      class="hidden absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center bg-[#09090B]/95"
+    >
+      <div class="max-w-md rounded-lg border border-[#27272A] bg-[#111115] p-6">
+        <p class="font-mono text-xs font-semibold tracking-wider text-[#A855F7] uppercase">
+          {t.models.viewerErrorTitle}
+        </p>
+        <p class="mt-2 text-sm leading-relaxed text-[#A1A1AA]">
+          {t.models.viewerErrorDescription}
+        </p>
+      </div>
+    </div>
+
+    <!-- Mount Container for <model-viewer> -->
+    <div data-viewer-mount class="h-full w-full"></div>
+  </div>
+
+  <!-- Bottom Instructions Caption -->
+  <div class="border-t border-[#27272A] bg-[#111115]/70 px-4 py-2.5 text-center font-mono text-xs text-[#71717A]">
+    {t.models.viewerInstructions}
+  </div>
+</section>
+
+<script>
+  type ModelViewerElement = HTMLElement & {
+    cameraOrbit?: string;
+    fieldOfView?: string;
+    autoRotate?: boolean;
+    resetTurntableRotation?: () => void;
+    jumpCameraToGoal?: () => void;
+  };
+
+  async function setupModelViewers() {
+    const roots = document.querySelectorAll<HTMLElement>('[data-model-viewer-root]');
+    if (roots.length === 0) return;
+
+    try {
+      await import('@google/model-viewer');
+    } catch {
+      roots.forEach((root) => {
+        root.querySelector('[data-viewer-loading]')?.classList.add('hidden');
+        root.querySelector('[data-viewer-error]')?.classList.remove('hidden');
+      });
+      return;
+    }
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    roots.forEach((root) => {
+      if (root.dataset.initialized === 'true') return;
+      root.dataset.initialized = 'true';
+
+      const mount = root.querySelector<HTMLElement>('[data-viewer-mount]');
+      const loadingEl = root.querySelector<HTMLElement>('[data-viewer-loading]');
+      const errorEl = root.querySelector<HTMLElement>('[data-viewer-error]');
+      const resetBtn = root.querySelector<HTMLButtonElement>('[data-viewer-reset]');
+      const autoRotateBtn = root.querySelector<HTMLButtonElement>('[data-viewer-autorotate]');
+      const fullscreenBtn = root.querySelector<HTMLButtonElement>('[data-viewer-fullscreen]');
+
+      const src = root.dataset.modelSrc || '';
+      const poster = root.dataset.posterSrc || '';
+      const alt = root.dataset.modelAlt || '3D Model';
+
+      if (!mount || !src) {
+        loadingEl?.classList.add('hidden');
+        errorEl?.classList.remove('hidden');
+        return;
+      }
+
+      const viewer = document.createElement('model-viewer') as ModelViewerElement;
+      viewer.setAttribute('src', src);
+      if (poster) viewer.setAttribute('poster', poster);
+      viewer.setAttribute('alt', alt);
+      viewer.setAttribute('camera-controls', '');
+      viewer.setAttribute('touch-action', 'pan-y');
+      viewer.setAttribute('shadow-intensity', '0.8');
+      viewer.setAttribute('exposure', '0.95');
+      viewer.setAttribute('camera-orbit', '35deg 65deg 105%');
+      viewer.style.width = '100%';
+      viewer.style.height = '100%';
+      viewer.style.backgroundColor = 'transparent';
+
+      const initialAutoRotate = !prefersReducedMotion;
+      if (initialAutoRotate) {
+        viewer.setAttribute('auto-rotate', '');
+      }
+      if (autoRotateBtn) {
+        autoRotateBtn.setAttribute('aria-pressed', initialAutoRotate ? 'true' : 'false');
+      }
+
+      viewer.addEventListener('load', () => {
+        loadingEl?.classList.add('hidden');
+        errorEl?.classList.add('hidden');
+      });
+
+      viewer.addEventListener('error', () => {
+        loadingEl?.classList.add('hidden');
+        errorEl?.classList.remove('hidden');
+      });
+
+      mount.innerHTML = '';
+      mount.appendChild(viewer);
+
+      resetBtn?.addEventListener('click', () => {
+        viewer.cameraOrbit = '35deg 65deg 105%';
+        viewer.fieldOfView = 'auto';
+        if (typeof viewer.resetTurntableRotation === 'function') {
+          viewer.resetTurntableRotation();
+        }
+        if (typeof viewer.jumpCameraToGoal === 'function') {
+          viewer.jumpCameraToGoal();
+        }
+      });
+
+      autoRotateBtn?.addEventListener('click', () => {
+        const currentlyRotating = viewer.hasAttribute('auto-rotate');
+        if (currentlyRotating) {
+          viewer.removeAttribute('auto-rotate');
+          autoRotateBtn.setAttribute('aria-pressed', 'false');
+          autoRotateBtn.classList.remove('border-[#A855F7]/40', 'bg-[#A855F7]/15', 'text-[#E9D5FF]');
+          autoRotateBtn.classList.add('border-[#27272A]', 'bg-[#18181B]', 'text-[#D4D4D8]');
+        } else {
+          viewer.setAttribute('auto-rotate', '');
+          autoRotateBtn.setAttribute('aria-pressed', 'true');
+          autoRotateBtn.classList.add('border-[#A855F7]/40', 'bg-[#A855F7]/15', 'text-[#E9D5FF]');
+          autoRotateBtn.classList.remove('border-[#27272A]', 'bg-[#18181B]', 'text-[#D4D4D8]');
+        }
+      });
+
+      fullscreenBtn?.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          root.requestFullscreen?.().catch(() => {});
+        } else {
+          document.exitFullscreen?.().catch(() => {});
+        }
+      });
+    });
+  }
+
+  function cleanupModelViewers() {
+    const mounts = document.querySelectorAll<HTMLElement>('[data-viewer-mount]');
+    mounts.forEach((mount) => {
+      mount.innerHTML = '';
+    });
+    const roots = document.querySelectorAll<HTMLElement>('[data-model-viewer-root]');
+    roots.forEach((root) => {
+      delete root.dataset.initialized;
+    });
+  }
+
+  setupModelViewers();
+  document.addEventListener('astro:page-load', setupModelViewers);
+  document.addEventListener('astro:before-swap', cleanupModelViewers);
+</script>

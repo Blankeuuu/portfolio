@@ -1,0 +1,95 @@
+---
+import { SITE_CONFIG, type Locale } from '@/data/site';
+import { getTranslations } from '@/i18n/translations';
+import { getLocalizedPath } from '@/i18n/routing';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getTranslations(locale);
+const base = import.meta.env.BASE_URL;
+const currentYear = new Date().getUTCFullYear();
+
+const navLinks = [
+  { label: t.nav.home, href: getLocalizedPath('/', locale, base) },
+  { label: t.nav.repos, href: getLocalizedPath('/repos/', locale, base) },
+  { label: t.nav.models, href: getLocalizedPath('/models/', locale, base) },
+  { label: t.nav.about, href: getLocalizedPath('/about/', locale, base) },
+];
+---
+
+<footer class="mt-24 border-t border-[#27272A]/80 bg-[#09090B]">
+  <div class="mx-auto max-w-6xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 gap-10 md:grid-cols-12">
+      <!-- Brand Column -->
+      <div class="md:col-span-6">
+        <div class="inline-flex items-center gap-2.5 text-sm font-semibold text-[#FAFAFA]">
+          <span class="h-2 w-2 rounded-full bg-[#A855F7]" aria-hidden="true"></span>
+          <span>{SITE_CONFIG.owner}</span>
+          <span class="font-mono text-xs font-normal text-[#A1A1AA]">— {SITE_CONFIG.role}</span>
+        </div>
+        <p class="mt-3 max-w-sm text-sm leading-relaxed text-[#A1A1AA]">
+          {t.footer.tagline}
+        </p>
+      </div>
+
+      <!-- Navigation Column -->
+      <div class="md:col-span-3">
+        <h2 class="font-mono text-xs font-medium tracking-wider text-[#FAFAFA] uppercase">
+          {t.footer.navigationHeading}
+        </h2>
+        <ul class="mt-3 space-y-2 text-sm">
+          {
+            navLinks.map((link) => (
+              <li>
+                <a
+                  href={link.href}
+                  class="text-[#A1A1AA] transition-colors hover:text-[#FAFAFA]"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+
+      <!-- Contact Column -->
+      <div class="md:col-span-3">
+        <h2 class="font-mono text-xs font-medium tracking-wider text-[#FAFAFA] uppercase">
+          {t.footer.contactHeading}
+        </h2>
+        <ul class="mt-3 space-y-2 text-sm">
+          <li>
+            <a
+              href={`mailto:${SITE_CONFIG.email}`}
+              class="inline-flex items-center gap-1.5 text-[#A1A1AA] transition-colors hover:text-[#A855F7]"
+            >
+              <span>{SITE_CONFIG.email}</span>
+            </a>
+          </li>
+          <li>
+            <a
+              href={SITE_CONFIG.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-1.5 text-[#A1A1AA] transition-colors hover:text-[#FAFAFA]"
+            >
+              <span>GitHub (@{SITE_CONFIG.githubUsername})</span>
+              <span aria-hidden="true" class="text-xs text-[#71717A]">↗</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div
+      class="mt-10 flex flex-col items-start justify-between gap-4 border-t border-[#1F1F23] pt-6 text-xs text-[#71717A] sm:flex-row sm:items-center"
+    >
+      <p>© {currentYear} {t.footer.rights}</p>
+      <p class="font-mono">{t.footer.builtWith}</p>
+    </div>
+  </div>
+</footer>

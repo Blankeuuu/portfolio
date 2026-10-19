@@ -1,0 +1,172 @@
+---
+import type { Locale } from '@/data/site';
+import { getTranslations } from '@/i18n/translations';
+import { getLocalizedPath } from '@/i18n/routing';
+import { getPublishedModels } from '@/lib/models/collection';
+import { extractModelCategories } from '@/lib/models/schema';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ModelCard from '@/components/models/ModelCard.astro';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getTranslations(locale);
+const base = import.meta.env.BASE_URL;
+
+const models = await getPublishedModels();
+const categories = extractModelCategories(models);
+---
+
+<BaseLayout
+  title={t.meta.modelsTitle}
+  description={t.meta.modelsDescription}
+  locale={locale}
+>
+  <section class="mx-auto max-w-6xl px-4 pt-14 pb-20 sm:px-6 sm:pt-20 lg:px-8">
+    <!-- Page Header -->
+    <div class="max-w-3xl" data-reveal>
+      <p class="font-mono text-xs tracking-widest text-[#A855F7] uppercase">
+        {t.models.eyebrow}
+      </p>
+      <h1 class="mt-3 text-3xl font-semibold tracking-tight text-[#FAFAFA] sm:text-5xl">
+        {t.models.title}
+      </h1>
+      <p class="mt-4 text-base leading-relaxed text-[#A1A1AA]">
+        {t.models.subtitle}
+      </p>
+    </div>
+
+    {
+      models.length > 0 ? (
+        <div class="mt-10" data-models-gallery>
+          {categories.length > 1 && (
+            <div
+              data-reveal
+              role="group"
+              aria-label={t.models.filterCategoryLabel}
+              class="mb-8 flex flex-wrap items-center gap-2"
+            >
+              <button
+                type="button"
+                data-category-btn="all"
+                aria-pressed="true"
+                class="rounded-full border border-[#A855F7]/50 bg-[#A855F7]/15 px-3.5 py-1.5 font-mono text-xs font-medium text-[#FAFAFA] transition-colors"
+              >
+                {t.models.allCategories}
+              </button>
+              {categories.map((category) => (
+                <button
+                  type="button"
+                  data-category-btn={category.toLowerCase()}
+                  aria-pressed="false"
+                  class="rounded-full border border-[#27272A] bg-[#111115] px-3.5 py-1.5 font-mono text-xs text-[#A1A1AA] transition-colors hover:border-[#3F3F46] hover:text-[#FAFAFA]"
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div
+            id="models-grid"
+            class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+          >
+            {models.map((model, idx) => (
+              <ModelCard model={model} locale={locale} index={idx} />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div
+          data-reveal
+          class="mt-12 overflow-hidden rounded-2xl border border-[#27272A] bg-[#111115]"
+        >
+          <div class="bg-architectural-grid flex flex-col items-center justify-center px-6 py-16 text-center sm:px-12 sm:py-20">
+            <div class="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-[#A855F7]/35 bg-[#A855F7]/10 text-[#A855F7]">
+              <svg
+                class="h-6 w-6"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.75"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                <line x1="12" y1="22.08" x2="12" y2="12" />
+              </svg>
+            </div>
+
+            <h2 class="mt-6 text-xl font-semibold tracking-tight text-[#FAFAFA] sm:text-2xl">
+              {t.models.emptyTitle}
+            </h2>
+
+            <p class="mt-3 max-w-lg text-sm leading-relaxed text-[#A1A1AA]">
+              {t.models.emptyDescription}
+            </p>
+
+            <p class="mt-2 max-w-lg text-xs text-[#71717A]">
+              {t.models.emptyHint}
+            </p>
+
+            <div class="mt-8">
+              <a
+                href={getLocalizedPath('/repos/', locale, base)}
+                class="inline-flex items-center gap-2 rounded-lg border border-[#27272A] bg-[#18181B] px-4 py-2.5 font-mono text-xs font-medium text-[#FAFAFA] transition-colors hover:border-[#A855F7]"
+              >
+                <span>{t.home.viewAllRepos}</span>
+                <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      )
+    }
+  </section>
+
+  <script>
+    function initModelCategoryFilter() {
+      const gallery = document.querySelector<HTMLElement>('[data-models-gallery]');
+      if (!gallery) return;
+
+      const buttons = Array.from(
+        gallery.querySelectorAll<HTMLButtonElement>('[data-category-btn]')
+      );
+      const cards = Array.from(
+        gallery.querySelectorAll<HTMLElement>('[data-model-card]')
+      );
+
+      if (buttons.length === 0) return;
+
+      buttons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const targetCat = btn.dataset.categoryBtn ?? 'all';
+
+          buttons.forEach((b) => {
+            const active = b === btn;
+            b.setAttribute('aria-pressed', active ? 'true' : 'false');
+            b.classList.toggle('border-[#A855F7]/50', active);
+            b.classList.toggle('bg-[#A855F7]/15', active);
+            b.classList.toggle('text-[#FAFAFA]', active);
+            b.classList.toggle('border-[#27272A]', !active);
+            b.classList.toggle('bg-[#111115]', !active);
+            b.classList.toggle('text-[#A1A1AA]', !active);
+          });
+
+          cards.forEach((card) => {
+            const cardCats = (card.dataset.categories ?? '').split('|').filter(Boolean);
+            const show = targetCat === 'all' || cardCats.includes(targetCat);
+            card.classList.toggle('hidden', !show);
+          });
+        });
+      });
+    }
+
+    initModelCategoryFilter();
+    document.addEventListener('astro:page-load', initModelCategoryFilter);
+  </script>
+</BaseLayout>

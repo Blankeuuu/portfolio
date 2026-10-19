@@ -1,0 +1,38 @@
+# Reference template for adding a real 3D model project.
+# Copy this file to `src/content/models/<your-slug>.yaml` (without the leading underscore)
+# and place your `.webp` images and `.glb` preview inside `public/models/<your-slug>/`.
+#
+# title: "Enclosure Name"
+# slug: "enclosure-name"
+# description:
+#   en: "Concise English description of the 3D model, its purpose, and mechanical features."
+#   pl: "Zwięzły polski opis modelu 3D, jego przeznaczenia oraz cech konstrukcyjnych."
+# publishedAt: "2026-10-20"
+# categories:
+#   - "Enclosures"
+# tags:
+#   - "ESP32"
+#   - "CAD"
+#   - "FDM"
+# cover: "/models/enclosure-name/cover.webp"
+# images:
+#   - "/models/enclosure-name/cover.webp"
+#   - "/models/enclosure-name/01.webp"
+# model: "/models/enclosure-name/preview.glb"
+# downloadEnabled: true
+# downloads:
+#   - label: "Main Housing (3MF)"
+#     format: "3MF"
+#     url: "/models/enclosure-name/housing.3mf"
+#     size: "1.4 MB"
+#   - label: "STEP Assembly"
+#     format: "STEP"
+#     url: "/models/enclosure-name/assembly.step"
+#     size: "3.2 MB"
+# software: "FreeCAD / Fusion"
+# printer: "Bambu Lab / Prusa"
+# material: "PETG"
+# printTime: "2h 15m"
+# version: "v1.0"
+# license: "CC BY-SA 4.0"
+# externalRepository: "https://github.com/Blankeuuu/cyd-deck"

@@ -1,0 +1,208 @@
+---
+import fs from 'node:fs';
+import path from 'node:path';
+import { SITE_CONFIG, type Locale } from '@/data/site';
+import { getTranslations } from '@/i18n/translations';
+import { withBase } from '@/i18n/routing';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getTranslations(locale);
+const base = import.meta.env.BASE_URL;
+
+// Prefer locally supplied profile image in public/images/ when available;
+// otherwise fall back to actual GitHub avatar, with initials-based fallback in the UI.
+const localCandidates = [
+  '/images/profile.webp',
+  '/images/profile.jpg',
+  '/images/profile.png',
+  '/images/avatar.webp',
+];
+
+let resolvedAvatarUrl: string = SITE_CONFIG.githubAvatarFallback;
+for (const candidate of localCandidates) {
+  const fullPath = path.resolve(process.cwd(), 'public', candidate.replace(/^\/+/, ''));
+  if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+    resolvedAvatarUrl = withBase(candidate, base);
+    break;
+  }
+}
+---
+
+<BaseLayout
+  title={t.meta.aboutTitle}
+  description={t.meta.aboutDescription}
+  locale={locale}
+>
+  <div class="mx-auto max-w-6xl px-4 pt-14 pb-20 sm:px-6 sm:pt-20 lg:px-8">
+    <!-- Top Identity & Bio Section -->
+    <section class="grid grid-cols-1 gap-10 lg:grid-cols-12 lg:items-start" data-reveal>
+      <!-- Profile Card Column -->
+      <div class="lg:col-span-4">
+        <div class="surface-card rounded-2xl p-6">
+          <div class="flex items-center gap-4">
+            <div class="relative h-16 w-16 shrink-0 overflow-hidden rounded-full border border-[#27272A] bg-[#18181B]">
+              <img
+                src={resolvedAvatarUrl}
+                alt={SITE_CONFIG.owner}
+                width="64"
+                height="64"
+                loading="eager"
+                decoding="async"
+                class="h-full w-full object-cover"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+              />
+              <div
+                style="display: none;"
+                class="absolute inset-0 items-center justify-center bg-[#18181B] font-mono text-lg font-semibold text-[#A855F7]"
+                aria-hidden="true"
+              >
+                SP
+              </div>
+            </div>
+
+            <div>
+              <p class="font-mono text-xs tracking-wider text-[#A855F7] uppercase">
+                {t.about.eyebrow}
+              </p>
+              <h1 class="mt-0.5 text-xl font-semibold tracking-tight text-[#FAFAFA]">
+                {t.about.title}
+              </h1>
+              <p class="font-mono text-xs text-[#A1A1AA]">— {t.about.role}</p>
+            </div>
+          </div>
+
+          <div class="mt-6 space-y-2.5 border-t border-[#1F1F23] pt-5 text-xs">
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-[#71717A]">{t.about.emailLabel}</span>
+              <a
+                href={`mailto:${SITE_CONFIG.email}`}
+                class="font-mono text-[#D4D4D8] transition-colors hover:text-[#A855F7]"
+              >
+                {SITE_CONFIG.email}
+              </a>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="font-mono text-[#71717A]">{t.about.githubLabel}</span>
+              <a
+                href={SITE_CONFIG.githubUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="font-mono text-[#D4D4D8] transition-colors hover:text-[#FAFAFA]"
+              >
+                @{SITE_CONFIG.githubUsername} ↗
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bio Copy Column -->
+      <div class="lg:col-span-8">
+        <p class="text-xl font-medium leading-relaxed text-[#FAFAFA] sm:text-2xl">
+          {t.about.introLead}
+        </p>
+
+        <div class="mt-6 space-y-4 text-base leading-relaxed text-[#A1A1AA]">
+          <p>{t.about.bioParagraph1}</p>
+          <p>{t.about.bioParagraph2}</p>
+          <p>{t.about.bioParagraph3}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Technical Areas Section -->
+    <section class="mt-20 border-t border-[#1F1F23] pt-16" data-reveal>
+      <h2 class="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
+        {t.about.areasTitle}
+      </h2>
+
+      <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
+        {
+          t.about.areas.map((area, idx) => (
+            <div
+              data-reveal
+              style={`--reveal-delay: ${idx * 75}ms`}
+              class="surface-card rounded-xl p-6"
+            >
+              <h3 class="text-base font-semibold text-[#FAFAFA]">{area.title}</h3>
+              <ul class="mt-4 space-y-2.5 text-sm text-[#A1A1AA]">
+                {area.items.map((item) => (
+                  <li class="flex items-start gap-2.5">
+                    <span
+                      class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#A855F7]"
+                      aria-hidden="true"
+                    />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- Approach / Principles Section -->
+    <section class="mt-20 border-t border-[#1F1F23] pt-16" data-reveal>
+      <h2 class="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
+        {t.about.principlesTitle}
+      </h2>
+
+      <div class="mt-8 grid grid-cols-1 gap-5 md:grid-cols-3">
+        {
+          t.about.principles.map((p, idx) => (
+            <div
+              data-reveal
+              style={`--reveal-delay: ${idx * 75}ms`}
+              class="surface-card rounded-xl p-6"
+            >
+              <h3 class="text-base font-semibold text-[#FAFAFA]">{p.title}</h3>
+              <p class="mt-2 text-sm leading-relaxed text-[#A1A1AA]">
+                {p.description}
+              </p>
+            </div>
+          ))
+        }
+      </div>
+    </section>
+
+    <!-- Integrated Contact Section -->
+    <section id="contact" class="mt-20 border-t border-[#1F1F23] pt-16" data-reveal>
+      <div class="rounded-2xl border border-[#27272A] bg-[#111115] p-8 sm:p-10">
+        <div class="max-w-2xl">
+          <h2 class="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
+            {t.about.contactTitle}
+          </h2>
+          <p class="mt-3 text-sm leading-relaxed text-[#A1A1AA] sm:text-base">
+            {t.about.contactSubtitle}
+          </p>
+
+          <div class="mt-7 flex flex-wrap items-center gap-3.5">
+            <a
+              href={`mailto:${SITE_CONFIG.email}`}
+              class="inline-flex items-center gap-2 rounded-lg bg-[#FAFAFA] px-5 py-2.5 text-sm font-medium text-[#09090B] transition-colors hover:bg-[#E4E4E7]"
+            >
+              <span>{t.about.sendEmailCta}</span>
+              <span class="font-mono text-xs text-[#52525B]">({SITE_CONFIG.email})</span>
+            </a>
+
+            <a
+              href={SITE_CONFIG.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-flex items-center gap-2 rounded-lg border border-[#27272A] bg-[#18181B] px-5 py-2.5 text-sm font-medium text-[#FAFAFA] transition-colors hover:border-[#A855F7]"
+            >
+              <span>{t.about.openGithubCta}</span>
+              <span aria-hidden="true" class="text-xs text-[#A1A1AA]">↗</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+</BaseLayout>

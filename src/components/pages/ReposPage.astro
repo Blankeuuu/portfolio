@@ -1,0 +1,272 @@
+---
+import type { Locale } from '@/data/site';
+import { getTranslations } from '@/i18n/translations';
+import {
+  extractAvailableLanguages,
+  fetchPublicRepositories,
+  sortRepositories,
+} from '@/lib/github/client';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import RepositoryCard from '@/components/projects/RepositoryCard.astro';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getTranslations(locale);
+
+const repoResult = await fetchPublicRepositories({ useCache: true });
+const repositories = sortRepositories(repoResult.repositories, 'activity');
+const languages = extractAvailableLanguages(repositories);
+---
+
+<BaseLayout
+  title={t.meta.reposTitle}
+  description={t.meta.reposDescription}
+  locale={locale}
+>
+  <section class="mx-auto max-w-6xl px-4 pt-14 pb-20 sm:px-6 sm:pt-20 lg:px-8">
+    <!-- Page Header -->
+    <div class="max-w-3xl" data-reveal>
+      <p class="font-mono text-xs tracking-widest text-[#A855F7] uppercase">
+        {t.repos.eyebrow}
+      </p>
+      <h1 class="mt-3 text-3xl font-semibold tracking-tight text-[#FAFAFA] sm:text-5xl">
+        {t.repos.title}
+      </h1>
+      <p class="mt-4 text-base leading-relaxed text-[#A1A1AA]">
+        {t.repos.subtitle}
+      </p>
+    </div>
+
+    <!-- API Status Notice (if rate-limited or unreachable during build) -->
+    {
+      repoResult.status !== 'ok' && (
+        <div
+          role="status"
+          class="mt-8 rounded-lg border border-[#A855F7]/30 bg-[#18181B] px-4 py-3 text-xs text-[#D4D4D8]"
+        >
+          {t.repos.apiWarningBanner}
+        </div>
+      )
+    }
+
+    {
+      repositories.length > 0 ? (
+        <div class="mt-10" data-repos-interactive>
+          <!-- Controls Bar: Search, Language Filter, Sort -->
+          <div
+            data-reveal
+            class="flex flex-col gap-3 rounded-xl border border-[#27272A] bg-[#111115] p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <!-- Search Input -->
+            <div class="relative flex-1">
+              <label for="repo-search-input" class="sr-only">
+                {t.repos.searchAria}
+              </label>
+              <input
+                id="repo-search-input"
+                type="search"
+                placeholder={t.repos.searchPlaceholder}
+                aria-label={t.repos.searchAria}
+                autocomplete="off"
+                class="w-full rounded-lg border border-[#27272A] bg-[#09090B] py-2 pr-3 pl-9 text-sm text-[#FAFAFA] placeholder-[#71717A] transition-colors focus:border-[#A855F7] focus:outline-none"
+              />
+              <svg
+                class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-[#71717A]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </div>
+
+            <!-- Filter & Sort Selectors -->
+            <div class="flex flex-wrap items-center gap-3">
+              <div class="flex items-center gap-2">
+                <label
+                  for="repo-language-select"
+                  class="font-mono text-xs text-[#A1A1AA]"
+                >
+                  {t.repos.filterLanguageLabel}:
+                </label>
+                <select
+                  id="repo-language-select"
+                  aria-label={t.repos.filterLanguageLabel}
+                  class="rounded-lg border border-[#27272A] bg-[#09090B] px-3 py-2 text-xs text-[#FAFAFA] transition-colors focus:border-[#A855F7] focus:outline-none"
+                >
+                  <option value="all">{t.repos.filterAllLanguages}</option>
+                  {languages.map((lang) => (
+                    <option value={lang.toLowerCase()}>{lang}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <label
+                  for="repo-sort-select"
+                  class="font-mono text-xs text-[#A1A1AA]"
+                >
+                  {t.repos.sortLabel}:
+                </label>
+                <select
+                  id="repo-sort-select"
+                  aria-label={t.repos.sortLabel}
+                  class="rounded-lg border border-[#27272A] bg-[#09090B] px-3 py-2 text-xs text-[#FAFAFA] transition-colors focus:border-[#A855F7] focus:outline-none"
+                >
+                  <option value="activity">{t.repos.sortActivity}</option>
+                  <option value="stars">{t.repos.sortStars}</option>
+                  <option value="name">{t.repos.sortName}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results Count -->
+          <div class="mt-4 flex items-center justify-between px-1 font-mono text-xs text-[#71717A]">
+            <p aria-live="polite">
+              <span id="repo-visible-count" class="font-semibold text-[#FAFAFA]">
+                {repositories.length}
+              </span>{' '}
+              {t.repos.resultsCount}
+            </p>
+            <p>{t.repos.syncNote}</p>
+          </div>
+
+          <!-- Repository Grid -->
+          <div
+            id="repo-cards-grid"
+            class="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2"
+          >
+            {repositories.map((repo, idx) => (
+              <RepositoryCard repo={repo} locale={locale} index={idx} />
+            ))}
+          </div>
+
+          <!-- Empty Search Results State -->
+          <div
+            id="repo-empty-search"
+            class="hidden mt-8 rounded-xl border border-[#27272A] bg-[#111115] p-12 text-center"
+          >
+            <h2 class="text-base font-semibold text-[#FAFAFA]">
+              {t.repos.emptySearchTitle}
+            </h2>
+            <p class="mx-auto mt-2 max-w-md text-sm text-[#A1A1AA]">
+              {t.repos.emptySearchDescription}
+            </p>
+            <button
+              type="button"
+              id="repo-reset-filters"
+              class="mt-5 inline-flex items-center rounded-lg border border-[#27272A] bg-[#18181B] px-4 py-2 font-mono text-xs font-medium text-[#FAFAFA] transition-colors hover:border-[#A855F7]"
+            >
+              {t.repos.resetFilters}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          data-reveal
+          class="mt-10 rounded-xl border border-[#27272A] bg-[#111115] p-12 text-center"
+        >
+          <h2 class="text-lg font-semibold text-[#FAFAFA]">
+            {t.repos.emptyReposTitle}
+          </h2>
+          <p class="mx-auto mt-2 max-w-md text-sm text-[#A1A1AA]">
+            {t.repos.emptyReposDescription}
+          </p>
+        </div>
+      )
+    }
+  </section>
+
+  <script>
+    function initRepoControls() {
+      const container = document.querySelector<HTMLElement>('[data-repos-interactive]');
+      if (!container) return;
+
+      const searchInput = document.getElementById('repo-search-input') as HTMLInputElement | null;
+      const langSelect = document.getElementById('repo-language-select') as HTMLSelectElement | null;
+      const sortSelect = document.getElementById('repo-sort-select') as HTMLSelectElement | null;
+      const grid = document.getElementById('repo-cards-grid');
+      const countEl = document.getElementById('repo-visible-count');
+      const emptySearchEl = document.getElementById('repo-empty-search');
+      const resetBtn = document.getElementById('repo-reset-filters');
+
+      if (!searchInput || !langSelect || !sortSelect || !grid) return;
+
+      const cards = Array.from(grid.querySelectorAll<HTMLElement>('[data-repo-card]'));
+
+      const applyFiltersAndSort = () => {
+        const query = searchInput.value.trim().toLowerCase();
+        const selectedLang = langSelect.value.toLowerCase();
+        const sortBy = sortSelect.value;
+
+        const sortedCards = [...cards].sort((a, b) => {
+          if (sortBy === 'stars') {
+            const starsDiff =
+              Number(b.dataset.stars ?? '0') - Number(a.dataset.stars ?? '0');
+            if (starsDiff !== 0) return starsDiff;
+            return Number(b.dataset.pushed ?? '0') - Number(a.dataset.pushed ?? '0');
+          }
+          if (sortBy === 'name') {
+            return (a.dataset.name ?? '').localeCompare(b.dataset.name ?? '', 'en', {
+              sensitivity: 'base',
+            });
+          }
+          return Number(b.dataset.pushed ?? '0') - Number(a.dataset.pushed ?? '0');
+        });
+
+        let visibleCount = 0;
+
+        sortedCards.forEach((card) => {
+          const name = card.dataset.name ?? '';
+          const desc = card.dataset.description ?? '';
+          const lang = card.dataset.language ?? '';
+          const topics = card.dataset.topics ?? '';
+
+          const matchesLang = selectedLang === 'all' || lang === selectedLang;
+          const matchesQuery =
+            !query ||
+            name.includes(query) ||
+            desc.includes(query) ||
+            lang.includes(query) ||
+            topics.includes(query);
+
+          const isVisible = matchesLang && matchesQuery;
+          card.classList.toggle('hidden', !isVisible);
+          grid.appendChild(card);
+
+          if (isVisible) visibleCount++;
+        });
+
+        if (countEl) {
+          countEl.textContent = String(visibleCount);
+        }
+        if (emptySearchEl) {
+          emptySearchEl.classList.toggle('hidden', visibleCount > 0);
+        }
+        grid.classList.toggle('hidden', visibleCount === 0);
+      };
+
+      searchInput.addEventListener('input', applyFiltersAndSort);
+      langSelect.addEventListener('change', applyFiltersAndSort);
+      sortSelect.addEventListener('change', applyFiltersAndSort);
+
+      resetBtn?.addEventListener('click', () => {
+        searchInput.value = '';
+        langSelect.value = 'all';
+        sortSelect.value = 'activity';
+        applyFiltersAndSort();
+        searchInput.focus();
+      });
+    }
+
+    initRepoControls();
+    document.addEventListener('astro:page-load', initRepoControls);
+  </script>
+</BaseLayout>

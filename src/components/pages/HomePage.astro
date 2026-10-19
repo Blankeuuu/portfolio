@@ -1,0 +1,196 @@
+---
+import { SITE_CONFIG, type Locale } from '@/data/site';
+import { getTranslations } from '@/i18n/translations';
+import { getLocalizedPath } from '@/i18n/routing';
+import { fetchPublicRepositories } from '@/lib/github/client';
+import { getPublishedModels } from '@/lib/models/collection';
+import { buildRecentWorkItems } from '@/lib/projects/recent';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import RecentWorkCard from '@/components/projects/RecentWorkCard.astro';
+
+interface Props {
+  locale: Locale;
+}
+
+const { locale } = Astro.props;
+const t = getTranslations(locale);
+const base = import.meta.env.BASE_URL;
+
+const [repoResult, publishedModels] = await Promise.all([
+  fetchPublicRepositories({ useCache: true }),
+  getPublishedModels(),
+]);
+
+const recentItems = buildRecentWorkItems(
+  repoResult.repositories,
+  publishedModels,
+  locale,
+  { limit: 6, base }
+);
+
+const githubProfileHref =
+  repoResult.resolvedUsername && repoResult.resolvedUsername !== SITE_CONFIG.githubUsername
+    ? `https://github.com/${repoResult.resolvedUsername}`
+    : SITE_CONFIG.githubUrl;
+---
+
+<BaseLayout
+  title={t.meta.homeTitle}
+  description={t.meta.homeDescription}
+  locale={locale}
+>
+  <!-- Hero Section -->
+  <section class="bg-architectural-grid relative border-b border-[#1F1F23]">
+    <div class="mx-auto max-w-6xl px-4 pt-20 pb-24 sm:px-6 sm:pt-28 sm:pb-32 lg:px-8">
+      <div class="max-w-3xl" data-reveal>
+        <p class="font-mono text-xs tracking-widest text-[#A1A1AA] uppercase">
+          {t.hero.eyebrow}
+        </p>
+
+        <h1 class="mt-5 text-4xl font-semibold tracking-tight text-[#FAFAFA] sm:text-6xl lg:text-7xl">
+          {t.hero.heading}
+        </h1>
+
+        <div class="mt-3 flex items-center gap-3">
+          <span
+            class="inline-flex items-center gap-2 rounded-md border border-[#A855F7]/35 bg-[#A855F7]/10 px-3 py-1 font-mono text-sm font-medium text-[#E9D5FF]"
+          >
+            <span class="h-1.5 w-1.5 rounded-full bg-[#A855F7]" aria-hidden="true"></span>
+            {t.hero.role}
+          </span>
+          <span class="font-mono text-sm text-[#A1A1AA]">
+            — {t.hero.statement}
+          </span>
+        </div>
+
+        <p class="mt-6 max-w-2xl text-base leading-relaxed text-[#A1A1AA] sm:text-lg">
+          {t.hero.substatement}
+        </p>
+
+        <!-- Primary & Secondary CTAs -->
+        <div class="mt-9 flex flex-wrap items-center gap-3.5">
+          <a
+            href="#recent-work"
+            class="inline-flex items-center gap-2 rounded-lg bg-[#FAFAFA] px-5 py-2.5 text-sm font-medium text-[#09090B] transition-all duration-200 hover:bg-[#E4E4E7] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A855F7]"
+          >
+            <span>{t.hero.ctaPrimary}</span>
+            <span aria-hidden="true">↓</span>
+          </a>
+
+          <a
+            href={githubProfileHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center gap-2 rounded-lg border border-[#27272A] bg-[#111115] px-5 py-2.5 text-sm font-medium text-[#FAFAFA] transition-colors duration-200 hover:border-[#A855F7]/50 hover:bg-[#18181B]"
+          >
+            <span>{t.hero.ctaSecondary}</span>
+            <span aria-hidden="true" class="text-xs text-[#A1A1AA]">↗</span>
+          </a>
+        </div>
+
+        <!-- Minimal Discipline Tags -->
+        <ul class="mt-12 flex flex-wrap items-center gap-2 border-t border-[#1F1F23] pt-6" aria-label="Disciplines">
+          {
+            t.hero.disciplines.map((item) => (
+              <li class="rounded border border-[#27272A]/80 bg-[#111115]/70 px-2.5 py-1 font-mono text-xs text-[#A1A1AA]">
+                {item}
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent Work Section -->
+  <section id="recent-work" class=" scroll-mt-20 py-20 sm:py-24">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+      <div
+        class="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end"
+        data-reveal
+      >
+        <div>
+          <h2 class="text-2xl font-semibold tracking-tight text-[#FAFAFA] sm:text-3xl">
+            {t.home.recentWorkTitle}
+          </h2>
+          <p class="mt-2 max-w-xl text-sm text-[#A1A1AA]">
+            {t.home.recentWorkSubtitle}
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3">
+          <a
+            href={getLocalizedPath('/repos/', locale, base)}
+            class="inline-flex items-center gap-1.5 rounded-md border border-[#27272A] bg-[#111115] px-3.5 py-1.5 font-mono text-xs text-[#D4D4D8] transition-colors hover:border-[#A855F7]/50 hover:text-white"
+          >
+            <span>{t.home.viewAllRepos}</span>
+            <span aria-hidden="true">→</span>
+          </a>
+          <a
+            href={getLocalizedPath('/models/', locale, base)}
+            class="inline-flex items-center gap-1.5 rounded-md border border-[#27272A] bg-[#111115] px-3.5 py-1.5 font-mono text-xs text-[#D4D4D8] transition-colors hover:border-[#A855F7]/50 hover:text-white"
+          >
+            <span>{t.home.viewAllModels}</span>
+            <span aria-hidden="true">→</span>
+          </a>
+        </div>
+      </div>
+
+      {
+        recentItems.length > 0 ? (
+          <div class="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {recentItems.map((item, idx) => (
+              <RecentWorkCard item={item} locale={locale} index={idx} />
+            ))}
+          </div>
+        ) : (
+          <div
+            data-reveal
+            class="mt-10 rounded-xl border border-[#27272A] bg-[#111115] p-10 text-center"
+          >
+            <h3 class="text-base font-medium text-[#FAFAFA]">
+              {t.home.emptyRecentTitle}
+            </h3>
+            <p class="mx-auto mt-2 max-w-md text-sm text-[#A1A1AA]">
+              {t.home.emptyRecentDescription}
+            </p>
+          </div>
+        )
+      }
+    </div>
+  </section>
+
+  <!-- Craft & Disciplines Section -->
+  <section class="border-t border-[#1F1F23] py-20 sm:py-24">
+    <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+      <div data-reveal>
+        <h2 class="text-2xl font-semibold tracking-tight text-[#FAFAFA] sm:text-3xl">
+          {t.home.focusAreasTitle}
+        </h2>
+        <p class="mt-2 max-w-xl text-sm text-[#A1A1AA]">
+          {t.home.focusAreasSubtitle}
+        </p>
+      </div>
+
+      <div class="mt-10 grid grid-cols-1 gap-5 md:grid-cols-3">
+        {
+          t.home.focusAreas.map((area, idx) => (
+            <div
+              data-reveal
+              style={`--reveal-delay: ${idx * 80}ms`}
+              class="surface-card rounded-xl p-6"
+            >
+              <span class="font-mono text-xs text-[#A855F7]">{area.code}</span>
+              <h3 class="mt-3 text-base font-semibold text-[#FAFAFA]">
+                {area.title}
+              </h3>
+              <p class="mt-2 text-sm leading-relaxed text-[#A1A1AA]">
+                {area.description}
+              </p>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+</BaseLayout>

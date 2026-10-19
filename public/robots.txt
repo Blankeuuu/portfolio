@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://blankeuuu.github.io/portfolio/sitemap-index.xml

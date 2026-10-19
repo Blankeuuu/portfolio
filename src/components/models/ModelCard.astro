@@ -1,0 +1,110 @@
+---
+import type { Locale } from '@/data/site';
+import { getTranslations } from '@/i18n/translations';
+import { formatDate, getLocalizedPath, withBase } from '@/i18n/routing';
+import { resolveAvailableDownloads, type ModelProject } from '@/lib/models/schema';
+
+interface Props {
+  model: ModelProject;
+  locale: Locale;
+  index?: number;
+}
+
+const { model, locale, index = 0 } = Astro.props;
+const t = getTranslations(locale);
+const base = import.meta.env.BASE_URL;
+
+const detailHref = getLocalizedPath(`/models/${model.slug}/`, locale, base);
+const coverSrc = model.cover.startsWith('http')
+  ? model.cover
+  : withBase(model.cover, base);
+const descriptionText = model.description[locale] ?? model.description.en;
+const availableDownloads = resolveAvailableDownloads(model);
+const revealDelay = `${Math.min(index * 70, 350)}ms`;
+---
+
+<article
+  data-model-card
+  data-categories={model.categories.map((c) => c.toLowerCase()).join('|')}
+  data-reveal
+  style={`--reveal-delay: ${revealDelay}`}
+  class="surface-card surface-card-interactive group relative flex flex-col overflow-hidden rounded-xl"
+>
+  <!-- Cover Image Container -->
+  <div class="relative aspect-[16/10] w-full overflow-hidden border-b border-[#27272A] bg-[#09090B]">
+    <img
+      src={coverSrc}
+      alt={model.title}
+      width="800"
+      height="500"
+      loading="lazy"
+      decoding="async"
+      class="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+    />
+    <div class="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#09090B]/70 via-transparent to-transparent"></div>
+
+    <!-- Top Badges -->
+    <div class="absolute top-3 left-3 flex flex-wrap gap-1.5">
+      <span class="inline-flex items-center gap-1 rounded-full border border-[#A855F7]/40 bg-[#09090B]/85 px-2.5 py-0.5 font-mono text-[11px] font-medium text-[#E9D5FF] backdrop-blur-sm">
+        <span class="h-1.5 w-1.5 rounded-full bg-[#A855F7]" aria-hidden="true" />
+        {t.models.interactiveBadge}
+      </span>
+      {
+        availableDownloads.length > 0 && (
+          <span class="inline-flex items-center rounded-full border border-[#27272A] bg-[#09090B]/85 px-2.5 py-0.5 font-mono text-[11px] text-[#A1A1AA] backdrop-blur-sm">
+            {t.models.downloadBadge}
+          </span>
+        )
+      }
+    </div>
+  </div>
+
+  <!-- Card Content -->
+  <div class="flex flex-1 flex-col justify-between p-6">
+    <div>
+      <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex flex-wrap gap-1.5">
+          {
+            model.categories.map((cat) => (
+              <span class="font-mono text-xs font-medium text-[#A855F7]">
+                {cat}
+              </span>
+            ))
+          }
+        </div>
+        <time datetime={model.publishedAt} class="font-mono text-xs text-[#71717A]">
+          {formatDate(model.publishedAt, locale)}
+        </time>
+      </div>
+
+      <h2 class="mt-2.5 text-lg font-semibold tracking-tight text-[#FAFAFA] transition-colors group-hover:text-white">
+        <a href={detailHref} class="after:absolute after:inset-0 focus:outline-none">
+          {model.title}
+        </a>
+      </h2>
+
+      <p class="mt-2 line-clamp-3 text-sm leading-relaxed text-[#A1A1AA]">
+        {descriptionText}
+      </p>
+    </div>
+
+    <div class="mt-5 flex items-center justify-between gap-3 border-t border-[#1F1F23] pt-4">
+      <div class="flex flex-wrap gap-1.5">
+        {
+          model.tags.slice(0, 3).map((tag) => (
+            <span class="rounded border border-[#27272A] bg-[#09090B] px-2 py-0.5 font-mono text-[11px] text-[#A1A1AA]">
+              {tag}
+            </span>
+          ))
+        }
+      </div>
+
+      <span
+        class="inline-flex shrink-0 items-center gap-1 font-mono text-xs font-medium text-[#FAFAFA] transition-colors group-hover:text-[#A855F7]"
+        aria-hidden="true"
+      >
+        {t.models.viewDetails} →
+      </span>
+    </div>
+  </div>
+</article>

@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <rect width="800" height="600" fill="#09090B"/>
+  <g stroke="#1F1F23" stroke-width="1">
+    <line x1="0" y1="150" x2="800" y2="150"/>
+    <line x1="0" y1="300" x2="800" y2="300"/>
+    <line x1="0" y1="450" x2="800" y2="450"/>
+    <line x1="200" y1="0" x2="200" y2="600"/>
+    <line x1="400" y1="0" x2="400" y2="600"/>
+    <line x1="600" y1="0" x2="600" y2="600"/>
+  </g>
+  <polygon points="400,170 530,245 530,395 400,470 270,395 270,245" fill="#111115" stroke="#A855F7" stroke-width="2"/>
+  <polyline points="270,245 400,320 530,245" stroke="#A855F7" stroke-width="1.5" stroke-opacity="0.6"/>
+  <line x1="400" y1="320" x2="400" y2="470" stroke="#A855F7" stroke-width="1.5" stroke-opacity="0.6"/>
+  <text x="40" y="555" fill="#71717A" font-family="monospace" font-size="14">DEV FIXTURE // CALIBRATION GEOMETRY</text>
+</svg>

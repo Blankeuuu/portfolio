@@ -1,0 +1,351 @@
+---
+import type { Locale } from '@/data/site';
+import { getTranslations } from '@/i18n/translations';
+import { formatDate, getLocalizedPath, withBase } from '@/i18n/routing';
+import { resolveAvailableDownloads, type ModelProject } from '@/lib/models/schema';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import ModelViewer from '@/components/models/ModelViewer.astro';
+import ModelCard from '@/components/models/ModelCard.astro';
+
+interface Props {
+  model: ModelProject;
+  relatedModels: ModelProject[];
+  locale: Locale;
+}
+
+const { model, relatedModels, locale } = Astro.props;
+const t = getTranslations(locale);
+const base = import.meta.env.BASE_URL;
+
+const descriptionText = model.description[locale] ?? model.description.en;
+const availableDownloads = resolveAvailableDownloads(model);
+
+const galleryImages = Array.from(
+  new Set([model.cover, ...model.images].filter(Boolean))
+).map((img) => (img.startsWith('http') ? img : withBase(img, base)));
+
+const specs = [
+  { label: t.models.specPublished, value: formatDate(model.publishedAt, locale) },
+  model.software ? { label: t.models.specSoftware, value: model.software } : null,
+  model.printer ? { label: t.models.specPrinter, value: model.printer } : null,
+  model.material ? { label: t.models.specMaterial, value: model.material } : null,
+  model.printTime ? { label: t.models.specPrintTime, value: model.printTime } : null,
+  model.version ? { label: t.models.specVersion, value: model.version } : null,
+  model.license ? { label: t.models.specLicense, value: model.license } : null,
+].filter((item): item is { label: string; value: string } => item !== null);
+---
+
+<BaseLayout
+  title={`${model.title} — ${t.meta.modelsTitle}`}
+  description={descriptionText}
+  locale={locale}
+  ogType="article"
+  ogImage={model.cover}
+>
+  <article class="mx-auto max-w-6xl px-4 pt-12 pb-20 sm:px-6 sm:pt-16 lg:px-8">
+    <!-- Back Link -->
+    <div data-reveal>
+      <a
+        href={getLocalizedPath('/models/', locale, base)}
+        class="inline-flex items-center gap-2 font-mono text-xs text-[#A1A1AA] transition-colors hover:text-[#FAFAFA]"
+      >
+        <span aria-hidden="true">←</span>
+        <span>{t.models.backToModels}</span>
+      </a>
+    </div>
+
+    <!-- Project Header -->
+    <header class="mt-6 max-w-3xl" data-reveal>
+      <div class="flex flex-wrap items-center gap-2.5 text-xs">
+        {
+          model.categories.map((cat) => (
+            <span class="rounded-full border border-[#A855F7]/35 bg-[#A855F7]/10 px-2.5 py-0.5 font-mono text-[11px] font-medium text-[#E9D5FF]">
+              {cat}
+            </span>
+          ))
+        }
+        <time datetime={model.publishedAt} class="font-mono text-xs text-[#71717A]">
+          {formatDate(model.publishedAt, locale)}
+        </time>
+      </div>
+
+      <h1 class="mt-3 text-3xl font-semibold tracking-tight text-[#FAFAFA] sm:text-5xl">
+        {model.title}
+      </h1>
+
+      <p class="mt-4 text-base leading-relaxed text-[#A1A1AA] sm:text-lg">
+        {descriptionText}
+      </p>
+    </header>
+
+    <!-- Interactive 3D Viewer -->
+    <div class="mt-10" data-reveal>
+      <ModelViewer
+        modelUrl={model.model}
+        posterUrl={model.cover}
+        title={model.title}
+        locale={locale}
+      />
+    </div>
+
+    <!-- Details Grid: Gallery + Technical Specs & Downloads -->
+    <div class="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-12">
+      <!-- Image Gallery Column -->
+      <div class="lg:col-span-7" data-reveal>
+        <h2 class="font-mono text-xs font-medium tracking-wider text-[#FAFAFA] uppercase">
+          {t.models.gallerySectionTitle}
+        </h2>
+
+        <div
+          data-model-gallery
+          class="mt-4 overflow-hidden rounded-xl border border-[#27272A] bg-[#111115]"
+        >
+          <div class="relative aspect-[16/10] w-full bg-[#09090B]">
+            <img
+              id="gallery-active-image"
+              src={galleryImages[0]}
+              alt={`${model.title} — 1`}
+              width="960"
+              height="600"
+              loading="lazy"
+              decoding="async"
+              class="h-full w-full object-contain transition-opacity duration-200"
+            />
+
+            {
+              galleryImages.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    data-gallery-prev
+                    aria-label={t.models.galleryPrevAria}
+                    class="absolute top-1/2 left-3 -translate-y-1/2 rounded-lg border border-[#27272A] bg-[#09090B]/85 p-2 text-[#FAFAFA] transition-colors hover:border-[#A855F7]"
+                  >
+                    ←
+                  </button>
+                  <button
+                    type="button"
+                    data-gallery-next
+                    aria-label={t.models.galleryNextAria}
+                    class="absolute top-1/2 right-3 -translate-y-1/2 rounded-lg border border-[#27272A] bg-[#09090B]/85 p-2 text-[#FAFAFA] transition-colors hover:border-[#A855F7]"
+                  >
+                    →
+                  </button>
+                </>
+              )
+            }
+          </div>
+
+          {
+            galleryImages.length > 1 && (
+              <div class="flex gap-2.5 overflow-x-auto border-t border-[#27272A] p-3">
+                {galleryImages.map((imgSrc, idx) => (
+                  <button
+                    type="button"
+                    data-gallery-thumb={imgSrc}
+                    data-gallery-index={String(idx)}
+                    aria-label={`${t.models.galleryThumbnailAria} ${idx + 1}`}
+                    aria-pressed={idx === 0 ? 'true' : 'false'}
+                    class:list={[
+                      'relative h-16 w-24 shrink-0 overflow-hidden rounded-md border transition-all',
+                      idx === 0 ? 'border-[#A855F7] ring-1 ring-[#A855F7]' : 'border-[#27272A] opacity-70 hover:opacity-100',
+                    ]}
+                  >
+                    <img
+                      src={imgSrc}
+                      alt={`${model.title} thumbnail ${idx + 1}`}
+                      width="160"
+                      height="100"
+                      loading="lazy"
+                      class="h-full w-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )
+          }
+        </div>
+      </div>
+
+      <!-- Technical Specifications & Downloads Column -->
+      <div class="space-y-8 lg:col-span-5" data-reveal>
+        <!-- Technical Specifications -->
+        <section class="rounded-xl border border-[#27272A] bg-[#111115] p-6">
+          <h2 class="font-mono text-xs font-medium tracking-wider text-[#FAFAFA] uppercase">
+            {t.models.specsSectionTitle}
+          </h2>
+
+          <dl class="mt-4 divide-y divide-[#1F1F23] text-sm">
+            {
+              specs.map((spec) => (
+                <div class="flex items-center justify-between gap-4 py-2.5">
+                  <dt class="text-[#A1A1AA]">{spec.label}</dt>
+                  <dd class="font-mono text-xs text-[#FAFAFA]">{spec.value}</dd>
+                </div>
+              ))
+            }
+            {
+              model.externalRepository && (
+                <div class="flex items-center justify-between gap-4 py-2.5">
+                  <dt class="text-[#A1A1AA]">{t.models.specExternalRepo}</dt>
+                  <dd>
+                    <a
+                      href={model.externalRepository}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="font-mono text-xs text-[#A855F7] hover:underline"
+                    >
+                      GitHub ↗
+                    </a>
+                  </dd>
+                </div>
+              )
+            }
+          </dl>
+
+          {
+            model.tags.length > 0 && (
+              <div class="mt-5 border-t border-[#1F1F23] pt-4">
+                <ul class="flex flex-wrap gap-1.5" aria-label="Tags">
+                  {model.tags.map((tag) => (
+                    <li class="rounded border border-[#27272A] bg-[#09090B] px-2.5 py-0.5 font-mono text-xs text-[#A1A1AA]">
+                      #{tag}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          }
+        </section>
+
+        <!-- Conditional Downloads Section (Strictly Gated by downloadEnabled and File Verification) -->
+        {
+          availableDownloads.length > 0 && (
+            <section class="rounded-xl border border-[#A855F7]/30 bg-[#111115] p-6">
+              <h2 class="font-mono text-xs font-medium tracking-wider text-[#FAFAFA] uppercase">
+                {t.models.downloadsSectionTitle}
+              </h2>
+              <p class="mt-1.5 text-xs text-[#A1A1AA]">
+                {t.models.downloadsSubtitle}
+              </p>
+
+              <ul class="mt-4 space-y-2.5">
+                {availableDownloads.map((file) => {
+                  const fileHref = file.url.startsWith('http')
+                    ? file.url
+                    : withBase(file.url, base);
+                  return (
+                    <li>
+                      <a
+                        href={fileHref}
+                        download={!file.url.startsWith('http') ? '' : undefined}
+                        target={file.url.startsWith('http') ? '_blank' : undefined}
+                        rel={file.url.startsWith('http') ? 'noopener noreferrer' : undefined}
+                        aria-label={`${t.models.downloadFileAria}: ${file.label} (${file.format})`}
+                        class="flex items-center justify-between gap-3 rounded-lg border border-[#27272A] bg-[#18181B] px-4 py-3 text-sm transition-colors hover:border-[#A855F7]"
+                      >
+                        <div class="min-w-0">
+                          <p class="truncate font-medium text-[#FAFAFA]">{file.label}</p>
+                          {file.size && (
+                            <p class="font-mono text-xs text-[#71717A]">{file.size}</p>
+                          )}
+                        </div>
+                        <span class="shrink-0 rounded border border-[#A855F7]/40 bg-[#A855F7]/15 px-2.5 py-1 font-mono text-xs font-medium text-[#E9D5FF]">
+                          {file.format} ↓
+                        </span>
+                      </a>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          )
+        }
+      </div>
+    </div>
+
+    <!-- Related Models -->
+    {
+      relatedModels.length > 0 && (
+        <section class="mt-20 border-t border-[#1F1F23] pt-14" data-reveal>
+          <h2 class="text-2xl font-semibold tracking-tight text-[#FAFAFA]">
+            {t.models.relatedModelsTitle}
+          </h2>
+          <div class="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {relatedModels.slice(0, 3).map((rel, idx) => (
+              <ModelCard model={rel} locale={locale} index={idx} />
+            ))}
+          </div>
+        </section>
+      )
+    }
+  </article>
+
+  <script>
+    function initModelGallery() {
+      const gallery = document.querySelector<HTMLElement>('[data-model-gallery]');
+      if (!gallery) return;
+
+      const activeImg = document.getElementById('gallery-active-image') as HTMLImageElement | null;
+      const thumbs = Array.from(
+        gallery.querySelectorAll<HTMLButtonElement>('[data-gallery-thumb]')
+      );
+      const prevBtn = gallery.querySelector<HTMLButtonElement>('[data-gallery-prev]');
+      const nextBtn = gallery.querySelector<HTMLButtonElement>('[data-gallery-next]');
+
+      if (!activeImg || thumbs.length <= 1) return;
+
+      let currentIndex = 0;
+
+      const setIndex = (index: number) => {
+        currentIndex = (index + thumbs.length) % thumbs.length;
+        const targetThumb = thumbs[currentIndex];
+        if (!targetThumb) return;
+        const newSrc = targetThumb.dataset.galleryThumb;
+        if (newSrc) {
+          activeImg.src = newSrc;
+        }
+        thumbs.forEach((thumb, idx) => {
+          const isCurrent = idx === currentIndex;
+          thumb.setAttribute('aria-pressed', isCurrent ? 'true' : 'false');
+          thumb.classList.toggle('border-[#A855F7]', isCurrent);
+          thumb.classList.toggle('ring-1', isCurrent);
+          thumb.classList.toggle('ring-[#A855F7]', isCurrent);
+          thumb.classList.toggle('border-[#27272A]', !isCurrent);
+          thumb.classList.toggle('opacity-70', !isCurrent);
+        });
+      };
+
+      thumbs.forEach((thumb, idx) => {
+        thumb.addEventListener('click', () => setIndex(idx));
+      });
+
+      prevBtn?.addEventListener('click', () => setIndex(currentIndex - 1));
+      nextBtn?.addEventListener('click', () => setIndex(currentIndex + 1));
+
+      // Touch swipe support on mobile
+      let touchStartX = 0;
+      activeImg.addEventListener(
+        'touchstart',
+        (e) => {
+          touchStartX = e.changedTouches[0]?.screenX ?? 0;
+        },
+        { passive: true }
+      );
+      activeImg.addEventListener(
+        'touchend',
+        (e) => {
+          const touchEndX = e.changedTouches[0]?.screenX ?? 0;
+          const delta = touchEndX - touchStartX;
+          if (Math.abs(delta) > 40) {
+            setIndex(delta < 0 ? currentIndex + 1 : currentIndex - 1);
+          }
+        },
+        { passive: true }
+      );
+    }
+
+    initModelGallery();
+    document.addEventListener('astro:page-load', initModelGallery);
+  </script>
+</BaseLayout>

@@ -1,0 +1,26 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getPublishedModels } from '@/lib/models/collection';
+import type { ModelProject } from '@/lib/models/schema';
+import ModelDetailPage from '@/components/pages/ModelDetailPage.astro';
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const models = await getPublishedModels();
+  return models.map((model) => ({
+    params: { slug: model.slug },
+    props: {
+      model,
+      relatedModels: models.filter((m) => m.slug !== model.slug),
+    },
+  }));
+};
+
+interface Props {
+  model: ModelProject;
+  relatedModels: ModelProject[];
+}
+
+const { model, relatedModels } = Astro.props;
+---
+
+<ModelDetailPage model={model} relatedModels={relatedModels} locale="pl" />
